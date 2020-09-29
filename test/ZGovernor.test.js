@@ -1,7 +1,7 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const ethers = require('ethers');
-const CatoToken = artifacts.require('CatoToken');
-const CatoMaster = artifacts.require('CatoMaster');
+const CatnipToken = artifacts.require('CatnipToken');
+const CatnipMaster = artifacts.require('CatnipMaster');
 const Timelock = artifacts.require('Timelock');
 const GovernorAlpha = artifacts.require('GovernorAlpha');
 const MockERC20 = artifacts.require('MockERC20');
@@ -13,23 +13,23 @@ function encodeParameters(types, values) {
 
 contract('Governor', ([alice, minter, dev]) => {
     it('should work', async () => {
-        this.cato = await CatoToken.new({ from: alice });
-        await this.cato.delegate(dev, { from: dev });
-        this.chef = await CatoMaster.new(this.cato.address, dev, '100', '0', { from: alice });
-        await this.cato.transferOwnership(this.chef.address, { from: alice });
+        this.catnip = await CatnipToken.new({ from: alice });
+        await this.catnip.delegate(dev, { from: dev });
+        this.chef = await CatnipMaster.new(this.catnip.address, dev, '100', '0', { from: alice });
+        await this.catnip.transferOwnership(this.chef.address, { from: alice });
         this.lp = await MockERC20.new('LPToken', 'LP', '10000000000', { from: minter });
         this.lp2 = await MockERC20.new('LPToken2', 'LP2', '10000000000', { from: minter });
         await this.chef.add('100', this.lp.address, true, { from: alice });
         await this.lp.approve(this.chef.address, '1000', { from: minter });
         await this.chef.deposit(0, '100', { from: minter });
-        // Perform another deposit to make sure some CATOs are minted in that 1 block.
+        // Perform another deposit to make sure some CATNIPs are minted in that 1 block.
         await this.chef.deposit(0, '100', { from: minter });
-        assert.equal((await this.cato.totalSupply()).valueOf(), '1066');
-        assert.equal((await this.cato.balanceOf(minter)).valueOf(), '1000');
-        assert.equal((await this.cato.balanceOf(dev)).valueOf(), '66');
+        assert.equal((await this.catnip.totalSupply()).valueOf(), '1066');
+        assert.equal((await this.catnip.balanceOf(minter)).valueOf(), '1000');
+        assert.equal((await this.catnip.balanceOf(dev)).valueOf(), '66');
         // Transfer ownership to timelock contract
         this.timelock = await Timelock.new(alice, time.duration.days(2), { from: alice });
-        this.gov = await GovernorAlpha.new(this.timelock.address, this.cato.address, alice, { from: alice });
+        this.gov = await GovernorAlpha.new(this.timelock.address, this.catnip.address, alice, { from: alice });
         await this.timelock.setPendingAdmin(this.gov.address, { from: alice });
         await this.gov.__acceptAdmin({ from: alice });
         await this.chef.transferOwnership(this.timelock.address, { from: alice });

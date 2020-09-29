@@ -1,7 +1,7 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const ethers = require('ethers');
-const CatoToken = artifacts.require('CatoToken');
-const CatoMaster = artifacts.require('CatoMaster');
+const CatnipToken = artifacts.require('CatnipToken');
+const CatnipMaster = artifacts.require('CatnipMaster');
 const MockERC20 = artifacts.require('MockERC20');
 const Timelock = artifacts.require('Timelock');
 
@@ -12,23 +12,23 @@ function encodeParameters(types, values) {
 
 contract('Timelock', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
-        this.cato = await CatoToken.new({ from: alice });
+        this.catnip = await CatnipToken.new({ from: alice });
         this.timelock = await Timelock.new(bob, '259200', { from: alice });
     });
 
     it('should not allow non-owner to do operation', async () => {
-        await this.cato.transferOwnership(this.timelock.address, { from: alice });
+        await this.catnip.transferOwnership(this.timelock.address, { from: alice });
         await expectRevert(
-            this.cato.transferOwnership(carol, { from: alice }),
+            this.catnip.transferOwnership(carol, { from: alice }),
             'Ownable: caller is not the owner',
         );
         await expectRevert(
-            this.cato.transferOwnership(carol, { from: bob }),
+            this.catnip.transferOwnership(carol, { from: bob }),
             'Ownable: caller is not the owner',
         );
         await expectRevert(
             this.timelock.queueTransaction(
-                this.cato.address, '0', 'transferOwnership(address)',
+                this.catnip.address, '0', 'transferOwnership(address)',
                 encodeParameters(['address'], [carol]),
                 (await time.latest()).add(time.duration.days(4)),
                 { from: alice },
@@ -38,33 +38,33 @@ contract('Timelock', ([alice, bob, carol, dev, minter]) => {
     });
 
     it('should do the timelock thing', async () => {
-        await this.cato.transferOwnership(this.timelock.address, { from: alice });
+        await this.catnip.transferOwnership(this.timelock.address, { from: alice });
         const eta = (await time.latest()).add(time.duration.days(4));
         await this.timelock.queueTransaction(
-            this.cato.address, '0', 'transferOwnership(address)',
+            this.catnip.address, '0', 'transferOwnership(address)',
             encodeParameters(['address'], [carol]), eta, { from: bob },
         );
         await time.increase(time.duration.days(1));
         await expectRevert(
             this.timelock.executeTransaction(
-                this.cato.address, '0', 'transferOwnership(address)',
+                this.catnip.address, '0', 'transferOwnership(address)',
                 encodeParameters(['address'], [carol]), eta, { from: bob },
             ),
             "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
         );
         await time.increase(time.duration.days(4));
         await this.timelock.executeTransaction(
-            this.cato.address, '0', 'transferOwnership(address)',
+            this.catnip.address, '0', 'transferOwnership(address)',
             encodeParameters(['address'], [carol]), eta, { from: bob },
         );
-        assert.equal((await this.cato.owner()).valueOf(), carol);
+        assert.equal((await this.catnip.owner()).valueOf(), carol);
     });
 
-    it('should also work with CatoMaster', async () => {
+    it('should also work with CatnipMaster', async () => {
         this.lp1 = await MockERC20.new('LPToken', 'LP', '10000000000', { from: minter });
         this.lp2 = await MockERC20.new('LPToken', 'LP', '10000000000', { from: minter });
-        this.chef = await CatoMaster.new(this.cato.address, dev, '1000', '0', { from: alice });
-        await this.cato.transferOwnership(this.chef.address, { from: alice });
+        this.chef = await CatnipMaster.new(this.catnip.address, dev, '1000', '0', { from: alice });
+        await this.catnip.transferOwnership(this.chef.address, { from: alice });
         await this.chef.add('100', this.lp1.address, true);
         await this.chef.transferOwnership(this.timelock.address, { from: alice });
         const eta = (await time.latest()).add(time.duration.days(4));

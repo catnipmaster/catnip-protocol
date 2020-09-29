@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../catpin/interfaces/ICatPinERC20.sol";
+import "../catnip/interfaces/ICatnipERC20.sol";
 
 contract RewardsDistributionRecipient {
     address public rewardsDistribution;
@@ -68,20 +68,29 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard {
     }
 
     function earned(address account) public view returns (uint256) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
+        return
+            _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(
+                rewards[account]
+            );
     }
 
     function getRewardForDuration() external view returns (uint256) {
         return rewardRate.mul(rewardsDuration);
     }
 
-    function stakeWithPermit(uint256 amount, uint deadline, uint8 v, bytes32 r, bytes32 s) external nonReentrant updateReward(msg.sender) {
+    function stakeWithPermit(
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
 
         // permit
-        ICatPinERC20(address(stakingToken)).permit(msg.sender, address(this), amount, deadline, v, r, s);
+        ICatnipERC20(address(stakingToken)).permit(msg.sender, address(this), amount, deadline, v, r, s);
 
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
@@ -130,7 +139,7 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard {
         // This keeps the reward rate in the right range, preventing overflows due to
         // very high values of rewardRate in the earned and rewardsPerToken functions;
         // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
-        uint balance = rewardsToken.balanceOf(address(this));
+        uint256 balance = rewardsToken.balanceOf(address(this));
         require(rewardRate <= balance.div(rewardsDuration), "Provided reward too high");
 
         lastUpdateTime = block.timestamp;

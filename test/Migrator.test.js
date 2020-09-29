@@ -1,23 +1,23 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
-const CatoToken = artifacts.require('CatoToken');
-const CatoMaster = artifacts.require('CatoMaster');
+const CatnipToken = artifacts.require('CatnipToken');
+const CatnipMaster = artifacts.require('CatnipMaster');
 const MockERC20 = artifacts.require('MockERC20');
-const CatPinPair = artifacts.require('CatPinPair');
-const CatPinFactory = artifacts.require('CatPinFactory');
+const CatnipPair = artifacts.require('CatnipPair');
+const CatnipFactory = artifacts.require('CatnipFactory');
 const Migrator = artifacts.require('Migrator');
 
 contract('Migrator', ([alice, bob, dev, minter]) => {
     beforeEach(async () => {
-        this.factory1 = await CatPinFactory.new(alice, { from: alice });
-        this.factory2 = await CatPinFactory.new(alice, { from: alice });
-        this.cato = await CatoToken.new({ from: alice });
+        this.factory1 = await CatnipFactory.new(alice, { from: alice });
+        this.factory2 = await CatnipFactory.new(alice, { from: alice });
+        this.catnip = await CatnipToken.new({ from: alice });
         this.weth = await MockERC20.new('WETH', 'WETH', '100000000', { from: minter });
         this.token = await MockERC20.new('TOKEN', 'TOKEN', '100000000', { from: minter });
-        this.lp1 = await CatPinPair.at((await this.factory1.createPair(this.weth.address, this.token.address)).logs[0].args.pair);
-        this.lp2 = await CatPinPair.at((await this.factory2.createPair(this.weth.address, this.token.address)).logs[0].args.pair);
-        this.chef = await CatoMaster.new(this.cato.address, dev, '1000', '0', { from: alice });
+        this.lp1 = await CatnipPair.at((await this.factory1.createPair(this.weth.address, this.token.address)).logs[0].args.pair);
+        this.lp2 = await CatnipPair.at((await this.factory2.createPair(this.weth.address, this.token.address)).logs[0].args.pair);
+        this.chef = await CatnipMaster.new(this.catnip.address, dev, '1000', '0', { from: alice });
         this.migrator = await Migrator.new(this.chef.address, this.factory1.address, this.factory2.address, '0');
-        await this.cato.transferOwnership(this.chef.address, { from: alice });
+        await this.catnip.transferOwnership(this.chef.address, { from: alice });
         await this.chef.add('100', this.lp1.address, true, { from: alice });
     });
 
@@ -50,7 +50,7 @@ contract('Migrator', ([alice, bob, dev, minter]) => {
     it('should allow first minting from public only after migrator is gone', async () => {
         await this.factory2.setMigrator(this.migrator.address, { from: alice });
         this.tokenx = await MockERC20.new('TOKENX', 'TOKENX', '100000000', { from: minter });
-        this.lpx = await CatPinPair.at((await this.factory2.createPair(this.weth.address, this.tokenx.address)).logs[0].args.pair);
+        this.lpx = await CatnipPair.at((await this.factory2.createPair(this.weth.address, this.tokenx.address)).logs[0].args.pair);
         await this.weth.transfer(this.lpx.address, '10000000', { from: minter });
         await this.tokenx.transfer(this.lpx.address, '500000', { from: minter });
         await expectRevert(this.lpx.mint(minter), 'Must not have migrator');
